@@ -1,48 +1,104 @@
 <html>
-  <head>
-    <title>Chat</title>
-  </head>
+<head>
+	<title>Chat</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+</head>
+<style>
+#chat {
+	text-align: left;
+	background: #f1f1f1;
+	width: 500px;
+	min-height: 300px;
+	padding: 20px;
+}
+.senderrow {
+	font-size: 10pt;
+	font-color: blue;
+	display: block;
+}
+.senderrow .pointer {
+	cursor: pointer;
+}
+.hidden {
+	display : none;
+}
+</style>
+<body>
+<div name="content" class="content">
+	<h3>Chat</h3>
+	<div name="chat-box" id="chat-box" class="chat-box">
+	</div>
+	<div name="control-row" id="control-row" class="control-row">
+		<span id="private-container" name="private-container" class="hidden">
+			<input type="hidden" id="other-name" value="broadcast" />
+			<span class="other-name" id="other-name-text"></span>
+			<span class="discard-private" onclick="discardPrivate()" >X</span>
+		</span>
+		<input placeholder="say something" id="text" type="text">
+	</div>
 
-  <style>
-    #chat {
-      text-align: left;
-      background: #f1f1f1;
-      width: 500px;
-      min-height: 300px;
-      padding: 20px;
-    }
-  </style>
+</div>
+<script type="text/javascript">
+var name = window.location.pathname.split('/')[2];
 
-  <body>
-    <center>
-      <h3>Chat</h3>
-      <pre id="chat"></pre>
-      <input placeholder="say something" id="text" type="text">
-    </center>
+if (typeof name == "undefined") {
+	name = "Guest" + Math.floor(Math.random() * 1000);
+}
+var url = "ws://" + window.location.host + "/ws/" + name;
+var ws = new WebSocket(url);
 
-    <script>
-      var url = "ws://" + window.location.host + "/ws";
-      var ws = new WebSocket(url);
-      var name = window.location.pathname.split('/')[2];
-      if (typeof name == "undefined") {
-	      name = "Guest" + Math.floor(Math.random() * 1000);
-      }
-      var chat = document.getElementById("chat");
-      var text = document.getElementById("text");
-      var now = function () {
-        var iso = new Date().toISOString();
-        return iso.split("T")[1].split(".")[0];
-      };
-      ws.onmessage = function (msg) {
-        var line =  now() + " " + msg.data + "\n";
-        chat.innerText += line;
-      };
-      text.onkeydown = function (e) {
-        if (e.keyCode === 13 && text.value !== "") {
-          ws.send(name+"|broadcast|<" + name + "> " + text.value);
-          text.value = "";
-        }
-      };
-    </script>
-  </body>
+var chat = document.getElementById("chat-box");
+var text = document.getElementById("text");
+var now = function () {
+	var iso = new Date().toISOString();
+	return iso.split("T")[1].split(".")[0];
+};
+ws.onmessage = function (msg) {
+	handleMessage(msg);
+};
+text.onkeydown = function (e) {
+	if (e.keyCode === 13 && text.value !== "") {
+		var recepient = $("#other-name").val();
+		ws.send(name+"|"+recepient+"|" + text.value);
+		text.value = "";
+		discardPrivate();
+	}
+};
+function setupRecepient(name) {
+console.log(name);
+	$("#private-container").removeClass("hidden");
+	$("#other-name").val(name.data);
+	$("#other-name-text").text(name.data);
+}
+function discardPrivate () {
+	$("#private-container").addClass("hidden");
+	$("#other-name").val("broadcast");
+}
+
+function handleMessage (msg) {
+/*
+msgParts : [0] - from, [1] - to, [2] - message
+*/
+	var msgParts = msg.data.split("|");
+	var senderRow = $("<span class='senderrow'></span>");
+	var sender = $("<span class='sender'></span>").text(msgParts[0]);
+	if (msgParts[0] != name) {
+		$(sender).addClass("pointer");
+		$(sender).click(msgParts[0], setupRecepient);
+	}
+	$(senderRow).append($(sender));
+	if (msgParts[1] != "broadcast") {
+		var recepient = $("<span class='recepient'></span>").text(" -> " + msgParts[1]);
+		$(senderRow).append($(recepient));
+	}
+	$(senderRow).append($("<span> - ("+ now() +")</span>"));
+	var msg = $("<span class='message'></span>");
+	$(msg).text(msgParts[2]);
+	var messageBox = $("<p></p>");
+	$(messageBox).append($(senderRow));
+	$(messageBox).append($(msg));
+	$(chat).append($(messageBox));
+}
+</script>
+</body>
 </html>

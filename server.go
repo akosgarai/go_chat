@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/olahol/melody"
 	"github.com/otoolep/go-httpd/store"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -36,20 +37,23 @@ func main() {
 		}
 	})
 
-	r.GET("/ws", func(c *gin.Context) {
+	r.GET("/ws/:name", func(c *gin.Context) {
 		m.HandleRequest(c.Writer, c.Request)
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
 		msgfragments := strings.Split(string(msg[:]), "|")
-		from, to, message := msgfragments[0], msgfragments[1], msgfragments[2]
+		from, to := msgfragments[0], msgfragments[1]
 		if to == "broadcast" {
-			m.Broadcast([]byte(message))
+			m.Broadcast(msg)
+			log.Println("Broadcast msg - ", msg)
 		} else {
-			m.BroadcastFilter([]byte(message), func(q *melody.Session) bool {
+			log.Println("Private msg - ", msg, " from - ", from, " to - ", to)
+			m.BroadcastFilter(msg, func(q *melody.Session) bool {
 				path := q.Request.URL.Path
 				fragments := strings.Split(path, "/")
-				return fragments[2] == from || fragments[2] == to
+				log.Println("Compare fragment - ", fragments[2], " with from - ", from, "and to - ", to)
+				return strings.Compare(fragments[2], from) == 0 || strings.Compare(fragments[2], to) == 0
 			})
 		}
 	})
