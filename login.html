@@ -1,0 +1,33 @@
+<html>
+<head>
+	<title>Chat - Login page</title>
+</head>
+
+<style>
+#chat {
+	text-align: left;
+	background: #f1f1f1;
+	width: 500px;
+	min-height: 300px;
+	padding: 20px;
+}
+</style>
+
+<body>
+	<center>
+	<h3>Chat - Login page</h3>
+	<input type="text" id="username" placeholder="Username" />
+	<input type="button" name="login" value="Login" onclick="login()" />
+	</center>
+
+<script>
+var url = "http://" + window.location.host + "/login/";
+function login () {
+	var name = document.getElementById("username");
+	if (name.value !== "") {
+		document.location.assign(url + name.value)
+	}
+}
+</script>
+</body>
+</html>
