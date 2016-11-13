@@ -5,6 +5,7 @@ import (
 	"github.com/olahol/melody"
 	"github.com/otoolep/go-httpd/store"
 	"net/http"
+	"strings"
 )
 
 func main() {
@@ -40,7 +41,17 @@ func main() {
 	})
 
 	m.HandleMessage(func(s *melody.Session, msg []byte) {
-		m.Broadcast(msg)
+		msgfragments := strings.Split(string(msg[:]), "|")
+		from, to, message := msgfragments[0], msgfragments[1], msgfragments[2]
+		if to == "broadcast" {
+			m.Broadcast([]byte(message))
+		} else {
+			m.BroadcastFilter([]byte(message), func(q *melody.Session) bool {
+				path := q.Request.URL.Path
+				fragments := strings.Split(path, "/")
+				return fragments[2] == from || fragments[2] == to
+			})
+		}
 	})
 
 	r.Run(":5000")
